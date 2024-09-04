@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  redis:
+    image: public.ecr.aws/ubuntu/redis:6.0-22.04_edge
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "6380:6379"
+
+  redis-1:
+    image: public.ecr.aws/ubuntu/redis:6.0-22.04_edge
+    restart: always
+    command: ["redis-server", "--port", "6381"]
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "6381:6381"
