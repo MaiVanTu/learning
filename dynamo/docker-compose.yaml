@@ -22,25 +22,32 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:latest
+    container_name: broker
     restart: always
     ports:
       - 9092:9092
+      - 9093:9093
     environment:
-      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092,PLAINTEXT://broker:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
-      KAFKA_ZOOKEEPER_CONNECT: 'zoo:2181'
+      # KAFKA_ZOOKEEPER_CONNECT: 'zoo:2181'
+      # KAFKA_BROKER_ID: 1
+      # KAFKA_LOG4J_LOGGERS: 'kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO'
+      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_BROKER_ID: 1
-      KAFKA_LOG4J_LOGGERS: 'kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO'
+      KAFKA_ZOOKEEPER_CONNECT: zoo:2181
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zoo
 
-  # cache:
-  #   image: redis:6.2-alpine
-  #   restart: always
-  #   ports:
-  #     - '6379:6379'
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
 
   dynamodb-local:
     image: amazon/dynamodb-local:latest
@@ -85,17 +92,17 @@ services:
     depends_on:
       - localstack
 
-  # postgres_db:
-  #   image: postgres:latest
-  #   container_name: Postgresql
-  #   restart: always
-  #   environment:
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=postgres
-  #   volumes:
-  #     - onboard_data:/var/lib/postgresql/data
-  #   ports:
-  #     - '5432:5432'
+  postgres_db:
+    image: postgres:latest
+    container_name: Postgresql
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - onboard_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
 
   kafka-ui:
     image: provectuslabs/kafka-ui
@@ -109,3 +116,14 @@ services:
       DYNAMIC_CONFIG_ENABLED: 'true'
       KAFKA_CLUSTERS_0_NAME: kafka
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:19092'
+
+  kafka-demo:
+    image: kafka-demo
+    container_name: kafka-demo
+    depends_on:
+      - kafka
+    ports:
+      - "8280:8280"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: 'kafka:9093'
+      DOCKER_DEFAULT_PLATFORM: linux/arm64
